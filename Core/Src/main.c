@@ -51,9 +51,13 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 
 uint8_t ADCUpdateFlag = 0;
-uint16_t ADCFeedBack = 0;
-
-uint16_t PWMOut = 3000;
+// Store ADC Value
+float ADCFeedBack = 0;
+float OutputVol = 0;
+float Kp = 2;
+float PWMOut = 0;
+float VolRef = 1000; // V
+float ADCRef = 1241;
 
 uint64_t _micro = 0;
 uint64_t TimeOutputLoop = 0;
@@ -129,13 +133,15 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
 		//1 Khz Loop
+
 		if (micros() - TimeOutputLoop > 1000)//uS
 		{
 			TimeOutputLoop = micros();
 			// #001
-
+			ADCRef = (VolRef*4096)/3300;
+			OutputVol = (ADCFeedBack * 3300)/4096;
+			PWMOut += Kp * (ADCRef - ADCFeedBack) ;
 			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, PWMOut);
-
 		}
 
 		if (ADCUpdateFlag) {
@@ -230,7 +236,7 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_0;
   sConfig.Rank = 1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_56CYCLES;
+  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -288,7 +294,7 @@ static void MX_TIM1_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
+  sConfigOC.Pulse = 5000;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
